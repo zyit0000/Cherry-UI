@@ -18,10 +18,13 @@ jobs:
         include:
           - target: x86_64-apple-darwin
             label: macos-intel
+            folder: CherryIntel
           - target: aarch64-apple-darwin
             label: macos-arm
+            folder: CherryArm
           - target: universal-apple-darwin
             label: macos-universal
+            folder: CherryUniversal
 
     steps:
       - name: Checkout
@@ -31,32 +34,32 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
-          cache-dependency-path: package-lock.json
+          # We remove the cache setup for now to avoid the "Some specified paths were not resolved" errors.
 
       - name: Install Rust (stable)
         uses: dtolnay/rust-toolchain@stable
         with:
-          # universal needs both slices; individual targets are a subset
           targets: x86_64-apple-darwin,aarch64-apple-darwin
 
-      - name: Cache Rust dependencies
-        uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: src-tauri
-
       - name: Install npm dependencies
+        # Using npm install instead of npm ci is safer if package-lock is not perfectly resolving.
         run: npm install
 
       - name: Build Tauri – ${{ matrix.label }}
         run: npx tauri build --target ${{ matrix.target }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload .app bundle
+      - name: Prepare Simple Artifact Path
+        run: |
+          mkdir -p ${{ matrix.folder }}
+          find src-tauri/target/${{ matrix.target }}/release/bundle/dmg -name "*.dmg" -exec cp {} ${{ matrix.folder }}/ \;
+          find src-tauri/target/${{ matrix.target }}/release/bundle/macos -name "*.app" -maxdepth 2 -exec cp -r {} ${{ matrix.folder }}/ \;
+        shell: bash
+
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Cherry-${{ matrix.label }}
-          path: |
-            src-tauri/target/${{ matrix.target }}/release/bundle/macos/Cherry.app
-            src-tauri/target/${{ matrix.target }}/release/bundle/dmg/*.dmg
+          name: ${{ matrix.folder }}
+          path: ${{ matrix.folder }}
           if-no-files-found: warn
-          retention-days: 30
