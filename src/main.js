@@ -41,7 +41,7 @@ window.addEventListener("DOMContentLoaded", () => {
     dot.className = "dot green";
     dot.style.backgroundColor = "#4dff88";
     dot.style.boxShadow = "0 0 8px #4dff8880";
-    statusText.textContent = `Connected`;
+    statusText.textContent = `Connected(${port})`;
   }
 
   function setDisconnected() {
