@@ -10,6 +10,7 @@
     "withGlobalTauri": true,
     "windows": [
       {
+        "label": "main",
         "title": "Cherry",
         "width": 754,
         "height": 501,
@@ -33,11 +34,6 @@
     ],
     "macOS": {
       "minimumSystemVersion": "11.0"
-    }
-  },
-  "plugins": {
-    "opener": {
-      "default": true
     }
   }
 }
