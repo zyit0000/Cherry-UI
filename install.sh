@@ -40,7 +40,27 @@ if ! sudo -v 2>/dev/null; then
 fi
 
 # ─── Download ──────────────────────────────────────────────────────────────
-curl -L --progress-bar -o "/tmp/${DMG_FILE}" "$DOWNLOAD_URL"
+HTTP_STATUS=$(curl -L --progress-bar -w "%{http_code}" -o "/tmp/${DMG_FILE}" "$DOWNLOAD_URL")
+
+if [ "$HTTP_STATUS" != "200" ]; then
+  echo ""
+  echo "Error: Download failed (HTTP $HTTP_STATUS)."
+  echo "       The release may not have been published yet."
+  echo "       Check: https://github.com/${REPO}/releases"
+  rm -f "/tmp/${DMG_FILE}"
+  exit 1
+fi
+
+# Verify the file is actually a DMG before mounting
+FILE_TYPE=$(file -b "/tmp/${DMG_FILE}")
+if ! echo "$FILE_TYPE" | grep -qi "disk image\|apple disk\|ISO 9660"; then
+  echo ""
+  echo "Error: Downloaded file does not appear to be a valid DMG."
+  echo "       File type detected: $FILE_TYPE"
+  echo "       The release assets may be missing or corrupted."
+  rm -f "/tmp/${DMG_FILE}"
+  exit 1
+fi
 
 # ─── Mount ─────────────────────────────────────────────────────────────────
 echo ""
