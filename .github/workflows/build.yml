@@ -1,4 +1,4 @@
-name: Build Cherry
+name: Build & Release Cherry
 
 on:
   push:
@@ -8,23 +8,25 @@ on:
   workflow_dispatch:
 
 jobs:
+  # ─── Build each macOS architecture ─────────────────────────────────────────
   build:
     name: Build (${{ matrix.label }})
     runs-on: macos-latest
-
     strategy:
       fail-fast: false
       matrix:
         include:
           - target: x86_64-apple-darwin
             label: macos-intel
-            folder: CherryIntel
+            artifact: CherryIntel.dmg
+
           - target: aarch64-apple-darwin
             label: macos-arm
-            folder: CherryArm
+            artifact: CherryArm.dmg
+
           - target: universal-apple-darwin
             label: macos-universal
-            folder: CherryUniversal
+            artifact: CherryUniversal.dmg
 
     steps:
       - name: Checkout
@@ -34,7 +36,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          # We remove the cache setup for now to avoid the "Some specified paths were not resolved" errors.
 
       - name: Install Rust (stable)
         uses: dtolnay/rust-toolchain@stable
@@ -42,24 +43,84 @@ jobs:
           targets: x86_64-apple-darwin,aarch64-apple-darwin
 
       - name: Install npm dependencies
-        # Using npm install instead of npm ci is safer if package-lock is not perfectly resolving.
         run: npm install
 
       - name: Build Tauri – ${{ matrix.label }}
-        run: npx tauri build --target ${{ matrix.target }}
+        run: npx tauri build --target ${{ matrix.target }} --no-sign
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Prepare Simple Artifact Path
+      - name: Rename DMG to canonical artifact name
         run: |
-          mkdir -p ${{ matrix.folder }}
-          find src-tauri/target/${{ matrix.target }}/release/bundle/dmg -name "*.dmg" -exec cp {} ${{ matrix.folder }}/ \;
-          find src-tauri/target/${{ matrix.target }}/release/bundle/macos -name "*.app" -maxdepth 2 -exec cp -r {} ${{ matrix.folder }}/ \;
+          DMG=$(find src-tauri/target/${{ matrix.target }}/release/bundle/dmg -name "*.dmg" | head -1)
+          if [ -z "$DMG" ]; then
+            echo "No DMG found!" && exit 1
+          fi
+          cp "$DMG" "${{ matrix.artifact }}"
         shell: bash
 
-      - name: Upload Artifact
+      # Upload the renamed DMG so the release job can download it
+      - name: Upload DMG artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.folder }}
-          path: ${{ matrix.folder }}
-          if-no-files-found: warn
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.artifact }}
+          if-no-files-found: error
+
+  # ─── Delete old release, create new one, attach all DMGs ──────────────────
+  release:
+    name: Publish Release
+    needs: build
+    runs-on: ubuntu-latest
+    # Only publish on direct pushes to main (not on PRs)
+    if: github.event_name != 'pull_request'
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download all DMG artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          merge-multiple: true
+
+      - name: List downloaded assets
+        run: ls -lh release-assets/
+
+      - name: Delete existing "Cherry v1.0.0" release & tag (if any)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="v1.0.0"
+          RELEASE_ID=$(gh release view "$TAG" --json id -q '.id' 2>/dev/null || echo "")
+          if [ -n "$RELEASE_ID" ]; then
+            echo "Deleting existing release $RELEASE_ID..."
+            gh release delete "$TAG" --yes --cleanup-tag
+          else
+            echo "No existing release found, creating fresh."
+          fi
+
+      - name: Create "Cherry v1.0.0" release & upload DMGs
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create v1.0.0 \
+            --title "Cherry v1.0.0" \
+            --notes "Latest Cherry UI build for macOS.
+          
+          ## Downloads
+          - **CherryUniversal.dmg** – macOS Universal (Intel + Apple Silicon, recommended)
+          - **CherryArm.dmg** – macOS Apple Silicon (M1/M2/M3)
+          - **CherryIntel.dmg** – macOS Intel
+          
+          ## Install via script
+          \`\`\`bash
+          curl -fsSL https://raw.githubusercontent.com/zyit0000/Cherry-ui/main/install.sh | bash
+          \`\`\`" \
+            release-assets/CherryIntel.dmg \
+            release-assets/CherryArm.dmg \
+            release-assets/CherryUniversal.dmg

@@ -14,8 +14,8 @@
     "core:window:allow-toggle-maximize",
     "core:window:allow-minimize",
     "core:window:allow-close",
-    "app:allow-attach",
-    "app:allow-execute",
-    "app:allow-detach"
+    "opener:allow-open-url",
+    "opener:allow-open-path",
+    "opener:allow-reveal-item-in-dir"
   ]
 }
