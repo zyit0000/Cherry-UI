@@ -96,10 +96,10 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           TAG="v1.0.0"
-          RELEASE_ID=$(gh release view "$TAG" --json id -q '.id' 2>/dev/null || echo "")
-          if [ -n "$RELEASE_ID" ]; then
-            echo "Deleting existing release $RELEASE_ID..."
+          if gh release view "$TAG" &>/dev/null; then
+            echo "Deleting existing release..."
             gh release delete "$TAG" --yes --cleanup-tag
+            sleep 3  # let GitHub finish removing the tag before recreating
           else
             echo "No existing release found, creating fresh."
           fi
@@ -110,6 +110,8 @@ jobs:
         run: |
           gh release create v1.0.0 \
             --title "Cherry v1.0.0" \
+            --draft=false \
+            --latest \
             --notes "Latest Cherry UI build for macOS.
           
           ## Downloads

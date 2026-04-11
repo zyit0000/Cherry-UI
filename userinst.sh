@@ -48,13 +48,13 @@ if [ "$HTTP_STATUS" != "200" ]; then
   exit 1
 fi
 
-# Verify the file is actually a DMG before mounting
+# Verify the downloaded file is not an HTML error page
 FILE_TYPE=$(file -b "/tmp/${DMG_FILE}")
-if ! echo "$FILE_TYPE" | grep -qi "disk image\|apple disk\|ISO 9660"; then
+if echo "$FILE_TYPE" | grep -qi "html\|ascii text\|utf-8 unicode text"; then
   echo ""
-  echo "Error: Downloaded file does not appear to be a valid DMG."
-  echo "       File type detected: $FILE_TYPE"
-  echo "       The release assets may be missing or corrupted."
+  echo "Error: Download returned an HTML error page instead of a DMG."
+  echo "       The release may not be published yet or the asset is missing."
+  echo "       Check: https://github.com/${REPO}/releases"
   rm -f "/tmp/${DMG_FILE}"
   exit 1
 fi
