@@ -6,6 +6,7 @@ set -e
 REPO="zyit0000/Cherry-ui"
 TAG="v1.0.0"
 BASE_URL="https://github.com/${REPO}/releases/download/${TAG}"
+USER_APPS="$HOME/Applications"
 
 # ─── Architecture detection ────────────────────────────────────────────────
 ARCH=$(uname -m)
@@ -24,20 +25,16 @@ fi
 DOWNLOAD_URL="${BASE_URL}/${DMG_FILE}"
 
 echo "──────────────────────────────────────────"
-echo "   Cherry Installer  (System)"
-echo "   Installs to: /Applications"
-echo "   Requires:    Administrator (sudo)"
+echo "   Cherry Installer  (User)"
+echo "   Installs to: ~/Applications"
+echo "   Requires:    No sudo / No admin"
 echo "──────────────────────────────────────────"
 echo "Detected architecture : $ARCH ($ARCH_LABEL)"
 echo "Downloading           : $DMG_FILE"
 echo ""
 
-# ─── Check sudo access upfront ────────────────────────────────────────────
-if ! sudo -v 2>/dev/null; then
-  echo "Error: This installer requires administrator privileges."
-  echo "       Run with sudo, or use userinst.sh for a user-level install."
-  exit 1
-fi
+# ─── Ensure ~/Applications exists ─────────────────────────────────────────
+mkdir -p "$USER_APPS"
 
 # ─── Download ──────────────────────────────────────────────────────────────
 curl -L --progress-bar -o "/tmp/${DMG_FILE}" "$DOWNLOAD_URL"
@@ -52,9 +49,9 @@ if [ -z "$MOUNT_DIR" ]; then
   exit 1
 fi
 
-# ─── Install to /Applications (requires sudo) ─────────────────────────────
-echo "Installing Cherry to /Applications (sudo)..."
-sudo cp -R "$MOUNT_DIR"/*.app /Applications/
+# ─── Install to ~/Applications (no sudo needed) ───────────────────────────
+echo "Installing Cherry to ~/Applications..."
+cp -R "$MOUNT_DIR"/*.app "$USER_APPS/"
 
 # ─── Cleanup ───────────────────────────────────────────────────────────────
 echo "Cleaning up..."
@@ -63,5 +60,7 @@ rm "/tmp/${DMG_FILE}"
 
 echo ""
 echo "──────────────────────────────────────────"
-echo "   Done! Cherry is now in /Applications."
+echo "   Done! Cherry is now in ~/Applications."
+echo "   You can also drag it to /Applications"
+echo "   anytime if you want a system install."
 echo "──────────────────────────────────────────"
