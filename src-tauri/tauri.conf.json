@@ -34,5 +34,10 @@
     "macOS": {
       "minimumSystemVersion": "11.0"
     }
+  },
+  "plugins": {
+    "opener": {
+      "default": true
+    }
   }
 }
