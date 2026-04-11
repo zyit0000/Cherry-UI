@@ -72,6 +72,10 @@ if [ -z "$MOUNT_DIR" ]; then
   exit 1
 fi
 
+# ─── Remove old Cherry install (clean upgrade) ────────────────────────────
+echo "Removing old Cherry.app (if any)..."
+sudo rm -rf /Applications/Cherry.app
+
 # ─── Install to /Applications (requires sudo) ─────────────────────────────
 echo "Installing Cherry to /Applications (sudo)..."
 sudo cp -R "$MOUNT_DIR"/*.app /Applications/

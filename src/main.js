@@ -246,7 +246,44 @@ window.addEventListener("DOMContentLoaded", () => {
     // ─── Clear button ─────────────────────────────────────────────────────────
     document.querySelector(".action-btn.clear").addEventListener("click", () => {
       editor.setValue("");
-      saveTabs();   // persist the cleared state
+      saveTabs();
+    });
+
+    // ─── Save button ──────────────────────────────────────────────────────────
+    // Downloads the active tab's content as a .lua file (no plugin needed).
+    document.querySelector(".action-btn.save").addEventListener("click", () => {
+      const code = editor.getValue();
+      const blob = new Blob([code], { type: "text/plain" });
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement("a");
+      a.href     = url;
+      a.download = "script.lua";
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+
+    // ─── Open button ──────────────────────────────────────────────────────────
+    // Opens a file picker; loads the chosen file's text into the active tab.
+    const fileInput = document.createElement("input");
+    fileInput.type   = "file";
+    fileInput.accept = ".lua,.txt";
+    fileInput.style.display = "none";
+    document.body.appendChild(fileInput);
+
+    document.querySelector(".action-btn.open").addEventListener("click", () => {
+      fileInput.value = "";   // reset so the same file can be reloaded
+      fileInput.click();
+    });
+
+    fileInput.addEventListener("change", () => {
+      const file = fileInput.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        editor.setValue(e.target.result);
+        saveTabs();
+      };
+      reader.readAsText(file);
     });
   });
 });
