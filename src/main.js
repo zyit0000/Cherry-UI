@@ -232,8 +232,10 @@ window.addEventListener("DOMContentLoaded", () => {
     });
 
     // ─── Execute button ───────────────────────────────────────────────────────
+    // Opiumware requires "OpiumwareScript " prefix on every script — no prefix = no execution.
     document.querySelector(".action-btn.execute").addEventListener("click", async () => {
-      const code = editor.getValue();
+      const rawCode = editor.getValue();
+      const code = "OpiumwareScript " + rawCode;   // official Opiumware API requirement
       try {
         await invoke("execute", { code });
       } catch (err) {
