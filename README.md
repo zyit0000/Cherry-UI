@@ -23,6 +23,5 @@ npx tauri dev
 ## Build
 
 Built automatically via GitHub Actions for:
-- Windows
 - macOS (Intel & ARM)
 - macOS Universal
